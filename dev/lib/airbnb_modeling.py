@@ -9,6 +9,20 @@ from pandas.plotting import scatter_matrix
 from statsmodels.compat import lzip
 import matplotlib.cm as cm
 
+from sklearn import preprocessing
+from sklearn import linear_model
+from sklearn.metrics import r2_score, mean_squared_error,mean_absolute_error
+from sklearn.model_selection import KFold,cross_val_score, cross_validate, train_test_split, GridSearchCV
+from sklearn.preprocessing import LabelEncoder, LabelBinarizer, PolynomialFeatures, MinMaxScaler, StandardScaler
+from sklearn.pipeline import Pipeline
+from sklearn import preprocessing
+from sklearn.neighbors import LocalOutlierFactor
+from sklearn.feature_selection import RFE, f_regression, RFECV
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.tree import DecisionTreeRegressor
+from sklearn.svm import SVR
+
+
 def descriptive_stats(X,varname):
     print 'Skew for original variable: ', X[varname].skew()
     print 'Kurtosis for original variable: ', X[varname].kurtosis()
@@ -100,6 +114,22 @@ def make_visualizations(X,y,predictions,model_results):
 def scale_data(X):
     return pd.DataFrame(preprocessing.scale(X),columns = X.columns)
 
+def normalize_data(X):
+    return pd.DataFrame(preprocessing.normalize(X),columns = X.columns)
+
+def eval_metrics(scores):
+    print 'Training R2 Mean: ',scores['train_r2'].mean()
+    print 'Validation R2 Mean: ',scores['test_r2'].mean()
+    print 'Validation R2 STdev: ',scores['test_r2'].std()
+    print '--'
+    print 'Training RMSE Mean: ', np.sqrt(-scores['train_neg_mean_squared_error'].mean())
+    print 'Validation RMSE Mean: ', np.sqrt(-scores['test_neg_mean_squared_error'].mean())
+    print 'Validation RMSE STdev: ',scores['test_neg_mean_squared_error'].std()
+    print '--'
+    print 'Training MAE Mean: ', -scores['train_neg_mean_absolute_error'].mean()
+    print 'Validation MAE Mean: ', -scores['test_neg_mean_absolute_error'].mean()
+    print 'Validation MAE STdev: ',scores['test_neg_mean_absolute_error'].std()
+
 def r2_est(X,y):
     linear_regression = linear_model.LinearRegression(normalize=True, fit_intercept=True)
     return r2_score(y, linear_regression.fit(X,y).predict(X))
@@ -185,22 +215,28 @@ def linear_reg(X, y):
     
     return model, predictions, model_results, r2, mse, mae, rmse
 
-def nonlinear_reg(X,y, deg):
+def nonlinear_reg(X_train, y_train, deg):
     
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.33, random_state=42)
+    X_train, X_val, y_train, y_val = train_test_split(X_train, y_train, test_size=0.25, random_state=42)
     
     model = Pipeline([('poly', PolynomialFeatures(degree = deg, interaction_only=False)),
                        ('linear', linear_model.LinearRegression(normalize=True, fit_intercept=True))])
-    model = model.fit(X_train, y_train)
-    predictions = model.predict(X_test)
-       
-        
-    r2 = r2_score(predictions, y_test)
-    mse = mean_squared_error(predictions, y_test)
-    mae =  mean_absolute_error(predictions, y_test)
-    rmse =  np.sqrt(mse)
     
-    return model, predictions, r2, mse, mae, rmse
+    model = model.fit(X_train, y_train)
+    predictions_train = model.predict(X_train)
+    predictions_val = model.predict(X_val)
+        
+    r2_train = r2_score(predictions_train, y_train)
+    mse_train = mean_squared_error(predictions_train, y_train)
+    mae_train =  mean_absolute_error(predictions_train, y_train)
+    rmse_train =  np.sqrt(mse)
+    
+    r2_val = r2_score(predictions_val, y_val)
+    mse_val = mean_squared_error(predictions_val, y_val)
+    mae_val =  mean_absolute_error(predictions_val, y_val)
+    rmse_val =  np.sqrt(mse)
+    
+    return model, predictions, r2_train, mse_train, mae_train, rmse_train, r2_val, mse_val, mae_val, rmse_val
 
 def detect_feature_importance(X,y):
     
@@ -210,8 +246,8 @@ def detect_feature_importance(X,y):
     model, predictions, model_results, r2, mse, mae, rmse = linear_reg(X, y)
     ranks["Linear_Reg"] = rank_to_dict(np.abs(model.coef_), names)
     
-    model, predictions, r2, mse, mae, rmse = nonlinear_reg(X, y,2)
-    ranks["Quad_Reg"] = rank_to_dict(np.abs(model.named_steps['linear'].coef_), names)
+    #model, predictions, r2, mse, mae, rmse = nonlinear_reg(X, y,2)
+    #ranks["Quad_Reg"] = rank_to_dict(np.abs(model.named_steps['linear'].coef_), names)
     
     #model, predictions, model_results, r2, mse, mae, rmse = nonlinear_reg(X, y,3)
     #ranks["Cub_Reg"] = rank_to_dict(np.abs(model.coef_), names)
@@ -235,12 +271,6 @@ def detect_feature_importance(X,y):
     #ranks["Corr"] = rank_to_dict(f, names)
     
     return ranks
-
-
-
-
-
-
 
 def compute_bivar_r2s(X,y,y_log):
     linear_R2s = bivar_reg_linear(X,y)
@@ -283,11 +313,93 @@ def summarize_differences(bivar_r2s, line, title):
         plt.show()
         
 
+def detect_interactions(X,y, inc):
+    #Baseline
+    r2_impact = list()
+    baseline = r2_est(X,y)
+    for j in range(X.shape[1]):
+        selection = [i for i in range(X.shape[1]) if i!=j]
+        r2_impact.append(((r2_est(X,y)-(r2_est(X.values[:,selection],y)),X.columns[j])))
+    
+    #Interaction comparison vs Baseline
+    create_interactions = PolynomialFeatures(degree=2, interaction_only=True, include_bias=False)
+    X_i = create_interactions.fit_transform(X)
+    main_effects = create_interactions.n_input_features_
+    
+    #Now calculating the interactions:
+    a = []
+    b = []
+    inc = []
+    
+    for k, effect in enumerate(create_interactions.powers_[(main_effects):]):
+        A, B = X.columns[effect==1]
+        increment = r2_est(X_i[:,list(range(0,main_effects))+[main_effects+k]],y) - baseline
+        if increment > inc:
+            print ("Interaction: var %8s and var %8s R2: %5.3f" %(A,B,increment))
+            a.append(A)
+            b.append(B)
+            inc.append(increment)
+    
+    increments = pd.DataFrame({
+        "Var1":a,
+        "Var2":b,
+        "Increment": inc
+    }, columns = ['Var1','Var2','Increment'])
+    
+    return increments    
+    
+def add_interactions(X, increments):
+    for i,k in zip(increments.Var1, increments.Var2):
+        new_int_feature = str(i) + '*' + str(k)
+        X[new_int_feature] = X[i] * X[k]
+    return X    
+    
+def plot_rmse_instances(clf, X_train, y_train):
+
+    train_errors, validation_errors = [],[]
+    
+    n = 2
+    
+    for i in range(n+1,len(X_train)):
+        
+        cv_results = cross_validate(clf,X_train[:i],y_train[:i],
+                                   scoring='neg_mean_squared_error',
+                                   cv=n)
+        train_score = np.sqrt(-cv_results['train_score'].mean())
+        val_score = np.sqrt(-cv_results['test_score'].mean())
+        
+        train_errors.append(train_score)
+        validation_errors.append(val_score)    
+    
+    plt.plot(np.sqrt(train_errors), "r-+", linewidth=2, label="train")
+    plt.plot(np.sqrt(validation_errors), "b-", linewidth=2, label='validation')
+    plt.xlabel('Number of Instances')
+    plt.ylabel('RMSE')
+    plt.title('Train and Val RMSE\'s as a Function of Number of Instances')
+    plt.show()    
     
     
+#Plot the RMSE for training and validation as a function of the number of features used
+#ranked features is a list of features sorted by importance - descending
+def plot_rmse_features(clf, X_train, y_train, ranked_features):
     
+    X_train, X_val, y_train, y_val = train_test_split(X_train[ranked_features], y_train, test_size=0.3)
     
+    train_errors, validation_errors = [],[]
     
+    for i in range(3,len(ranked_features)):
+        clf.fit(X_train.ix[:,2:i],y_train)
+        y_train_predict = clf.predict(X_train.ix[:,2:i])
+        y_val_predict = clf.predict(X_val.ix[:,2:i])
+        train_errors.append(mean_squared_error(y_train_predict, y_train))
+        validation_errors.append(mean_squared_error(y_val_predict, y_val))
+    
+    plt.plot(np.sqrt(train_errors), "r-+", linewidth=2, label="train")
+    plt.plot(np.sqrt(validation_errors), "b-", linewidth=2, label='validation')
+    plt.xlabel('Number of Features')
+    plt.ylabel('RMSE')
+    plt.title('Train and Val RMSE\'s as a Function of Number of Features')
+    plt.show()
     
     
     
