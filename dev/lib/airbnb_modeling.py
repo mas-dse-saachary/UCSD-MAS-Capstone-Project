@@ -92,7 +92,7 @@ def plot_outliers(X):
     boxplot = plt.boxplot(Xs)
     plt.show()
     
-def map_variable(var):
+def map_variable(var, listings):
     fig, ax = plt.subplots(figsize=(19,8))
     plt.scatter(listings['longitude'],listings['latitude'],c=var, cmap='RdBu', alpha=.5,vmin=-3, vmax=3)
     plt.colorbar()
