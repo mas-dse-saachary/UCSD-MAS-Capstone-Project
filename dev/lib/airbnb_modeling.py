@@ -16,7 +16,7 @@ from sklearn.model_selection import KFold,cross_val_score, cross_validate, train
 from sklearn.preprocessing import LabelEncoder, LabelBinarizer, PolynomialFeatures, MinMaxScaler, StandardScaler
 from sklearn.pipeline import Pipeline
 from sklearn import preprocessing
-from sklearn.neighbors import LocalOutlierFactor
+from sklearn.neighbors import LocalOutlierFactor, KNeighborsRegressor
 from sklearn.feature_selection import RFE, f_regression, RFECV
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.tree import DecisionTreeRegressor
@@ -361,13 +361,18 @@ def plot_rmse_instances(clf, X_train, y_train):
 
     train_errors, validation_errors = [],[]
     
-    n = 2
+    cv_n = 5
+     
+    if isinstance(clf, KNeighborsRegressor):
+        n = clf.n_neighbors +1
+    else:
+        n = cv_n+1
     
     for i in range(n+1,len(X_train)):
         
-        cv_results = cross_validate(clf,X_train[:i],y_train[:i],
+        cv_results = cross_validate(clf,X_train[:i],y_train[:i],return_train_score=True,
                                    scoring='neg_mean_squared_error',
-                                   cv=n)
+                                   cv=cv_n)
         train_score = np.sqrt(-cv_results['train_score'].mean())
         val_score = np.sqrt(-cv_results['test_score'].mean())
         
@@ -380,7 +385,35 @@ def plot_rmse_instances(clf, X_train, y_train):
     plt.ylabel('RMSE')
     plt.title('Train and Val RMSE\'s as a Function of Number of Instances')
     plt.show()    
+
+def plot_accuracy_instances(clf, X_train, y_train):
+
+    train_errors, validation_errors = [],[]
     
+    cv_n = 5
+    
+    if isinstance(clf, KNeighborsRegressor):
+        n = clf.n_neighbors +1
+    else:
+        n = cv_n+1
+    
+    for i in range(n+1,len(X_train)):
+        
+        cv_results = cross_validate(clf,X_train[:i],y_train[:i],return_train_score=True,
+                                   scoring='r2',
+                                   cv=cv_n)
+        train_score = -cv_results['train_score'].mean()
+        val_score = -cv_results['test_score'].mean()
+        
+        train_errors.append(train_score)
+        validation_errors.append(val_score)    
+    
+    plt.plot(np.sqrt(train_errors), "r-+", linewidth=2, label="train")
+    plt.plot(np.sqrt(validation_errors), "b-", linewidth=2, label='validation')
+    plt.xlabel('Number of Instances')
+    plt.ylabel('Accuracy')
+    plt.title('Train and Val Accuracy as a Function of Number of Instances')
+    plt.show()
     
 #Plot the RMSE for training and validation as a function of the number of features used
 #ranked features is a list of features sorted by importance - descending
