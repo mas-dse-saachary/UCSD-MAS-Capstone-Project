@@ -397,7 +397,7 @@ def plot_accuracy_instances(clf, X_train, y_train):
     else:
         n = cv_n+1
     
-    for i in range(n+1,len(X_train)):
+    for i in range(n+1,len(X_train),5):
         
         cv_results = cross_validate(clf,X_train[:i],y_train[:i],return_train_score=True,
                                    scoring='r2',
