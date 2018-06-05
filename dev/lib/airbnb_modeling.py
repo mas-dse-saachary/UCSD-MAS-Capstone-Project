@@ -419,14 +419,19 @@ def plot_accuracy_instances(clf, X_train, y_train):
 #ranked features is a list of features sorted by importance - descending
 def plot_rmse_features(clf, X_train, y_train, ranked_features):
     
+    if isinstance(clf, RandomForestRegressor):
+        n = clf.max_features +1
+    else:
+        n = 2
+    
     X_train, X_val, y_train, y_val = train_test_split(X_train[ranked_features], y_train, test_size=0.3)
     
     train_errors, validation_errors = [],[]
     
     for i in range(3,len(ranked_features)):
         clf.fit(X_train.ix[:,2:i],y_train)
-        y_train_predict = clf.predict(X_train.ix[:,2:i])
-        y_val_predict = clf.predict(X_val.ix[:,2:i])
+        y_train_predict = clf.predict(X_train.ix[:,n:i])
+        y_val_predict = clf.predict(X_val.ix[:,n:i])
         train_errors.append(mean_squared_error(y_train_predict, y_train))
         validation_errors.append(mean_squared_error(y_val_predict, y_val))
     
