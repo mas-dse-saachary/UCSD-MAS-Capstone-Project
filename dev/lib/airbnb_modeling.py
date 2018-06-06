@@ -429,7 +429,7 @@ def plot_rmse_features(clf, X_train, y_train, ranked_features):
     train_errors, validation_errors = [],[]
     
     for i in range(3,len(ranked_features)):
-        clf.fit(X_train.ix[:,2:i],y_train)
+        clf.fit(X_train.ix[:,n:i],y_train)
         y_train_predict = clf.predict(X_train.ix[:,n:i])
         y_val_predict = clf.predict(X_val.ix[:,n:i])
         train_errors.append(mean_squared_error(y_train_predict, y_train))
