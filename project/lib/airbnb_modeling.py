@@ -379,8 +379,8 @@ def plot_rmse_instances(clf, X_train, y_train):
         train_errors.append(train_score)
         validation_errors.append(val_score)    
     
-    plt.plot(np.sqrt(train_errors), "r-+", linewidth=2, label="train")
-    plt.plot(np.sqrt(validation_errors), "b-", linewidth=2, label='validation')
+    plt.plot(train_errors, "r-+", linewidth=2, label="train")
+    plt.plot(validation_errors, "b-", linewidth=2, label='validation')
     plt.xlabel('Number of Instances')
     plt.ylabel('RMSE')
     plt.title('Train and Val RMSE\'s as a Function of Number of Instances')
@@ -408,8 +408,8 @@ def plot_accuracy_instances(clf, X_train, y_train):
         train_errors.append(train_score)
         validation_errors.append(val_score)    
     
-    plt.plot(np.sqrt(train_errors), "r-+", linewidth=2, label="train")
-    plt.plot(np.sqrt(validation_errors), "b-", linewidth=2, label='validation')
+    plt.plot(train_errors, "r-+", linewidth=2, label="train")
+    plt.plot(validation_errors, "b-", linewidth=2, label='validation')
     plt.xlabel('Number of Instances')
     plt.ylabel('Accuracy')
     plt.title('Train and Val Accuracy as a Function of Number of Instances')
@@ -422,16 +422,16 @@ def plot_rmse_features(clf, X_train, y_train, ranked_features):
     if isinstance(clf, RandomForestRegressor):
         n = clf.max_features +1
     else:
-        n = 2
+        n = 4
     
     X_train, X_val, y_train, y_val = train_test_split(X_train[ranked_features], y_train, test_size=0.3)
     
     train_errors, validation_errors = [],[]
     
-    for i in range(3,len(ranked_features)):
-        clf.fit(X_train.ix[:,n:i],y_train)
-        y_train_predict = clf.predict(X_train.ix[:,n:i])
-        y_val_predict = clf.predict(X_val.ix[:,n:i])
+    for i in range(n,len(ranked_features)):
+        clf.fit(X_train.iloc[:,:i],y_train)
+        y_train_predict = clf.predict(X_train.iloc[:,:i])
+        y_val_predict = clf.predict(X_val.iloc[:,:i])
         train_errors.append(mean_squared_error(y_train_predict, y_train))
         validation_errors.append(mean_squared_error(y_val_predict, y_val))
     
