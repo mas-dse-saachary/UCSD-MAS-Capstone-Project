@@ -18,7 +18,7 @@ from sklearn.pipeline import Pipeline
 from sklearn import preprocessing
 from sklearn.neighbors import LocalOutlierFactor, KNeighborsRegressor
 from sklearn.feature_selection import RFE, f_regression, RFECV
-from sklearn.ensemble import RandomForestRegressor
+from sklearn.ensemble import RandomForestRegressor, BaggingRegressor, AdaBoostRegressor, GradientBoostingRegressor
 from sklearn.tree import DecisionTreeRegressor
 from sklearn.svm import SVR
 
@@ -392,10 +392,46 @@ def plot_accuracy_instances(clf, X_train, y_train):
     
     cv_n = 5
     
-    if isinstance(clf, KNeighborsRegressor):
-        n = clf.n_neighbors +1
-    else:
+    if isinstance(clf, linear_model.LinearRegression):
+        model_type = "Linear Regression"
         n = cv_n+1
+    elif isinstance(clf, DecisionTreeRegressor):
+        model_type = "Decision Tree Regression"
+        n = cv_n+1
+    elif isinstance(clf, KNeighborsRegressor):
+        n = clf.n_neighbors +1
+        model_type = "KNN Regression"
+    elif isinstance(clf, SVR):
+        n = cv_n+1
+        model_type = "Support Vector Regression"
+        
+    elif isinstance(clf, linear_model.Lasso):
+        n = cv_n+1
+        model_type = "Lasso Regression"
+        
+    elif isinstance(clf, linear_model.Ridge):
+        n = cv_n+1
+        model_type = "Ridge Regression"
+        
+    elif isinstance(clf, linear_model.ElasticNet):
+        n = cv_n+1
+        model_type = "Elastic Net Regression"
+        
+    elif isinstance(clf, RandomForestRegressor):
+        n = cv_n+1
+        model_type = "Random Forest Regression"
+        
+    elif isinstance(clf, BaggingRegressor):
+        n = cv_n+1
+        model_type = "Bagging Regression"
+        
+    elif isinstance(clf, AdaBoostRegressor):
+        n = cv_n+1
+        model_type = "AdaBoost Regression"
+           
+    elif isinstance(clf, GradientBoostingRegressor):
+        n = cv_n+1
+        model_type = "Gradient Boosting Regression"
     
     for i in range(n+1,len(X_train),5):
         
@@ -412,18 +448,54 @@ def plot_accuracy_instances(clf, X_train, y_train):
     plt.plot(validation_errors, "b-", linewidth=2, label='validation')
     plt.xlabel('Number of Instances')
     plt.ylabel('Accuracy')
-    plt.title('Train and Val Accuracy as a Function of Number of Instances')
+    plt.title('%s Train and Val Accuracy as a Function of Number of Instances'%(model_type))
     plt.show()
     
 #Plot the RMSE for training and validation as a function of the number of features used
 #ranked features is a list of features sorted by importance - descending
 def plot_rmse_features(clf, X_train, y_train, ranked_features):
     
-    if isinstance(clf, RandomForestRegressor):
-        n = clf.max_features +1
-    else:
+    if isinstance(clf, linear_model.LinearRegression):
+        model_type = "Linear Regression"
         n = 4
-    
+    elif isinstance(clf, DecisionTreeRegressor):
+        model_type = "Decision Tree Regression"
+        n = 4
+    elif isinstance(clf, KNeighborsRegressor):
+        n = 4
+        model_type = "KNN Regression"
+    elif isinstance(clf, SVR):
+        n = 4
+        model_type = "Support Vector Regression"
+        
+    elif isinstance(clf, linear_model.Lasso):
+        n = 4
+        model_type = "Lasso Regression"
+        
+    elif isinstance(clf, linear_model.Ridge):
+        n = 4
+        model_type = "Ridge Regression"
+        
+    elif isinstance(clf, linear_model.ElasticNet):
+        n = 4
+        model_type = "Elastic Net Regression"
+        
+    elif isinstance(clf, RandomForestRegressor):
+        n = clf.max_features +1
+        model_type = "Random Forest Regression"
+        
+    elif isinstance(clf, BaggingRegressor):
+        n = 4
+        model_type = "Bagging Regression"
+        
+    elif isinstance(clf, AdaBoostRegressor):
+        n = 4
+        model_type = "AdaBoost Regression"
+           
+    elif isinstance(clf, GradientBoostingRegressor):
+        n = 4
+        model_type = "Gradient Boosting Regression"
+
     X_train, X_val, y_train, y_val = train_test_split(X_train[ranked_features], y_train, test_size=0.3)
     
     train_errors, validation_errors = [],[]
@@ -441,20 +513,3 @@ def plot_rmse_features(clf, X_train, y_train, ranked_features):
     plt.ylabel('RMSE')
     plt.title('Train and Val RMSE\'s as a Function of Number of Features')
     plt.show()
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
