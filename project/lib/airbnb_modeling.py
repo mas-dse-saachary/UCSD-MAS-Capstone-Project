@@ -97,7 +97,7 @@ def map_variable(var, listings):
     listings = listings[listings.index.isin(var.index)]
     
     fig, ax = plt.subplots(figsize=(19,8))
-    plt.scatter(listings['longitude'],listings['latitude'],c=var, cmap='RdBu', alpha=.5,vmin=-3, vmax=3)
+    plt.scatter(listings['longitude'],listings['latitude'],c=var,linewidths=.5, cmap='coolwarm', alpha=.5,vmin=-3, vmax=3)
     plt.colorbar()
     plt.show()
     
@@ -127,11 +127,11 @@ def eval_metrics(scores):
     print '--'
     print 'Training RMSE Mean: ', np.sqrt(-scores['train_neg_mean_squared_error'].mean())
     print 'Validation RMSE Mean: ', np.sqrt(-scores['test_neg_mean_squared_error'].mean())
-    print 'Validation RMSE STdev: ',scores['test_neg_mean_squared_error'].std()
+    print 'Validation RMSE STdev: ',-scores['test_neg_mean_squared_error'].std()
     print '--'
     print 'Training MAE Mean: ', -scores['train_neg_mean_absolute_error'].mean()
     print 'Validation MAE Mean: ', -scores['test_neg_mean_absolute_error'].mean()
-    print 'Validation MAE STdev: ',scores['test_neg_mean_absolute_error'].std()
+    print 'Validation MAE STdev: ',-scores['test_neg_mean_absolute_error'].std()
 
 def r2_est(X,y):
     linear_regression = linear_model.LinearRegression(normalize=True, fit_intercept=True)
